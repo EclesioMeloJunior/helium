@@ -11,7 +11,7 @@ const MULTI_CHAR_TOKENS_MAPPING: [(&'static str, fn(String) -> Token); 3] = [
             ttype: TokenType::Number(NumericType::Integer),
         }
     }),
-    (r"[0-9]+\.[0-9]+", |lexeme| -> Token {
+    (r"^[0-9]+\.[0-9]+$", |lexeme| -> Token {
         Token {
             lexeme: lexeme,
             ttype: TokenType::Number(NumericType::Float),

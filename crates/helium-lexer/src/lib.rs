@@ -117,4 +117,19 @@ mod tests {
         assert_eq!(lexer.clone().count(), expected.len() as usize);
         assert!(lexer.map(|r| r.unwrap()).eq(expected))
     }
+
+    #[test]
+    fn read_stream_with_error() {
+        let input = String::from("1.209.90");
+        let mut lexer = Lexer::from(input);
+
+        let token = lexer.next();
+        assert!(token.is_some());
+
+        let token_result = token.unwrap();
+        assert!(token_result.is_err());
+
+        let err = token_result.unwrap_err();
+        assert_eq!(err, String::from("token not defined: \"1.209.90\""))
+    }
 }
