@@ -19,6 +19,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "helium-parser"
+version = "0.1.0"
+dependencies = [
+ "helium-lexer",
+]
+
+[[package]]
 name = "memchr"
 version = "2.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

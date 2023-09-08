@@ -1,13 +1,13 @@
 #![allow(unused)]
 
-mod token;
+pub mod token;
 
 use std::iter::Iterator as Iter;
 use std::iter::Peekable;
 use token::{Token, TokenType};
 
 #[derive(Debug, Clone)]
-struct Lexer<I>
+pub struct Lexer<I>
 where
     I: Iter<Item = u8>,
 {
@@ -18,7 +18,7 @@ impl<I> Lexer<I>
 where
     I: Iter<Item = u8>,
 {
-    fn new(stream: Peekable<I>) -> Self {
+    pub fn new(stream: Peekable<I>) -> Self {
         return Lexer { stream };
     }
 }
