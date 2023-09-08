@@ -40,6 +40,9 @@ pub enum TokenType {
     Minus,
     Star,
     Slash,
+
+    OpenParen,
+    CloseParen,
 }
 
 #[derive(Debug, PartialEq)]
@@ -51,55 +54,17 @@ pub struct Token {
 impl TryFrom<Vec<char>> for Token {
     type Error = String;
     fn try_from(value: Vec<char>) -> Result<Token, Self::Error> {
-        if value.len() < 2 {
-            return single_char_token(value.first().unwrap().to_owned());
+        let iter_chars = value.into_iter();
+        let lexeme = iter_chars.collect::<String>();
+
+        for (rgx_string, constructor) in MULTI_CHAR_TOKENS_MAPPING {
+            let re = Regex::new(rgx_string).unwrap();
+            match re.is_match(&lexeme) {
+                true => return Ok(constructor(lexeme)),
+                false => continue,
+            }
         }
 
-        multi_char_token(value)
+        return Err(format!("token not defined: {:?}", lexeme));
     }
-}
-
-fn single_char_token(current_char: char) -> Result<Token, String> {
-    match current_char {
-        '+' => Ok(Token {
-            lexeme: String::from("+"),
-            ttype: TokenType::Plus,
-        }),
-        '-' => Ok(Token {
-            lexeme: String::from("-"),
-            ttype: TokenType::Minus,
-        }),
-        '*' => Ok(Token {
-            lexeme: String::from("*"),
-            ttype: TokenType::Star,
-        }),
-        '/' => Ok(Token {
-            lexeme: String::from("/"),
-            ttype: TokenType::Slash,
-        }),
-        current_char if current_char.is_numeric() => Ok(Token {
-            lexeme: String::from(current_char),
-            ttype: TokenType::Number(NumericType::Integer),
-        }),
-        current_char if current_char.is_alphabetic() => Ok(Token {
-            lexeme: String::from(current_char),
-            ttype: TokenType::Identifier,
-        }),
-        _ => Err(format!("token not defined: {:?}", current_char)),
-    }
-}
-
-fn multi_char_token(chars: Vec<char>) -> Result<Token, String> {
-    let iter_chars = chars.into_iter();
-    let lexeme = iter_chars.collect::<String>();
-
-    for (rgx_string, constructor) in MULTI_CHAR_TOKENS_MAPPING {
-        let re = Regex::new(rgx_string).unwrap();
-        match re.is_match(&lexeme) {
-            true => return Ok(constructor(lexeme)),
-            false => continue,
-        }
-    }
-
-    return Err(format!("token not defined: {:?}", lexeme));
 }
