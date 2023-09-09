@@ -128,7 +128,7 @@ mod tests {
 
     #[test]
     fn read_stream_of_tokens() {
-        let tokens_as_str = String::from("(0-1) 12 + 1 helium h_e_lium 1.22");
+        let tokens_as_str = String::from("(0-1) 12 + 1 helium h_e_lium 1.22 printf(1)");
         let expected: Vec<Token> = vec![
             Token {
                 lexeme: String::from("("),
@@ -173,6 +173,22 @@ mod tests {
             Token {
                 lexeme: String::from("1.22"),
                 ttype: TokenType::Number(NumericType::Float),
+            },
+            Token {
+                lexeme: String::from("printf"),
+                ttype: TokenType::Identifier,
+            },
+            Token {
+                lexeme: String::from("("),
+                ttype: TokenType::OpenParen,
+            },
+            Token {
+                lexeme: String::from("1"),
+                ttype: TokenType::Number(NumericType::Integer),
+            },
+            Token {
+                lexeme: String::from(")"),
+                ttype: TokenType::CloseParen,
             },
         ];
 
