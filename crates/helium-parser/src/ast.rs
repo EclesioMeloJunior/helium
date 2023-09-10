@@ -21,6 +21,16 @@ impl Operator {
             )),
         }
     }
+
+    pub fn prefix_biding_power(&self) -> Result<((), u8), String> {
+        match self {
+            Operator::Minus => Ok(((), 5)),
+            _ => Err(format!(
+                "operator {:?} does not have prefix properties",
+                self
+            )),
+        }
+    }
 }
 
 impl TryFrom<&Token> for Operator {
@@ -32,7 +42,7 @@ impl TryFrom<&Token> for Operator {
             TokenType::Slash => Ok(Operator::Slash),
             TokenType::Star => Ok(Operator::Star),
             _ => Err(format!(
-                "operator not defined: {} ({:?})",
+                "operator not defined: '{}' ({:?})",
                 value.lexeme, value.ttype
             )),
         }

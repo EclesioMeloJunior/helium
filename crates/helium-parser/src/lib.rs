@@ -4,7 +4,7 @@ pub mod ast;
 
 use ast::{Operator, AST};
 use helium_lexer::{
-    token::{NumericType, Token, TokenType},
+    token::{self, NumericType, Token, TokenType},
     Lexer,
 };
 use std::{
@@ -32,7 +32,7 @@ impl<I> Parser<I>
 where
     I: Iterator<Item = Token>,
 {
-    pub fn expression(&mut self) -> Result<AST, String> {
+    pub fn program(&mut self) -> Result<AST, String> {
         self.inner_expression(0)
     }
 
@@ -41,7 +41,32 @@ where
             Some(token) => match token.ttype {
                 TokenType::Identifier => AST::Identifier(token.lexeme),
                 TokenType::Number(n) => AST::from((n, token.lexeme)),
-                _ => return Err(format!("unexepected token: {:?}", token)),
+                TokenType::OpenParen => {
+                    let lhs = self.inner_expression(0)?;
+                    match self.token_stream.next() {
+                        None => return Err(String::from("unexpected end of token stream")),
+                        Some(t) if t.ttype == TokenType::CloseParen => lhs,
+                        Some(t) => {
+                            return Err(format!(
+                                "expected: ')' (CloseParen)\ngot: '{}' ({:?})",
+                                t.lexeme, t.ttype,
+                            ))
+                        }
+                    }
+                }
+                _ => {
+                    let prefix_op = Operator::try_from(&token)?;
+                    match prefix_op.prefix_biding_power() {
+                        Ok(((), r_bp)) => {
+                            let rhs = self.inner_expression(r_bp)?;
+                            AST::UnaryExpression {
+                                operator: prefix_op,
+                                expression: Box::new(rhs),
+                            }
+                        }
+                        Err(err) => return Err(format!("unexepected token: {}", err)),
+                    }
+                }
             },
 
             None => return Err(String::from("unexepected end on token stream")),
@@ -50,6 +75,7 @@ where
         loop {
             let operator = match self.token_stream.peek() {
                 None => break,
+                Some(token) if token.ttype == TokenType::CloseParen => break,
                 Some(token) => Operator::try_from(token)?,
             };
 
@@ -73,7 +99,12 @@ where
 }
 
 mod tests {
-    use helium_lexer::token::{NumericType, Token, TokenType};
+    use std::fmt::Binary;
+
+    use helium_lexer::{
+        token::{NumericType, Token, TokenType},
+        Lexer,
+    };
 
     use crate::{
         ast::{Operator, AST},
@@ -104,7 +135,7 @@ mod tests {
         };
 
         let mut parser = Parser::new(tokens.into_iter().peekable());
-        let output = parser.expression().unwrap();
+        let output = parser.program().unwrap();
 
         assert_eq!(expected, output)
     }
@@ -145,8 +176,91 @@ mod tests {
         };
 
         let mut parser = Parser::new(tokens.into_iter().peekable());
-        let output = parser.expression().unwrap();
+        let output = parser.program().unwrap();
 
         assert_eq!(expected, output)
+    }
+
+    #[test]
+    fn parse_unary_in_expression() {
+        // ((- 1) + (2 * 3) - 3))
+        let tokens = vec![
+            Token {
+                lexeme: String::from("-"),
+                ttype: TokenType::Minus,
+            },
+            Token {
+                lexeme: String::from("1"),
+                ttype: TokenType::Number(NumericType::Integer),
+            },
+            Token {
+                lexeme: String::from("+"),
+                ttype: TokenType::Plus,
+            },
+            Token {
+                lexeme: String::from("2"),
+                ttype: TokenType::Number(NumericType::Integer),
+            },
+            Token {
+                lexeme: String::from("*"),
+                ttype: TokenType::Star,
+            },
+            Token {
+                lexeme: String::from("3"),
+                ttype: TokenType::Number(NumericType::Integer),
+            },
+            Token {
+                lexeme: String::from("-"),
+                ttype: TokenType::Star,
+            },
+            Token {
+                lexeme: String::from("3"),
+                ttype: TokenType::Number(NumericType::Integer),
+            },
+        ];
+
+        let expected_ast = AST::BinaryExpression {
+            operator: Operator::Plus,
+            lhs: Box::new(AST::UnaryExpression {
+                operator: Operator::Minus,
+                expression: Box::new(AST::Integer(1)),
+            }),
+            rhs: Box::new(AST::BinaryExpression {
+                operator: Operator::Minus,
+                lhs: Box::new(AST::BinaryExpression {
+                    operator: Operator::Star,
+                    lhs: Box::new(AST::Integer(2)),
+                    rhs: Box::new(AST::Integer(3)),
+                }),
+                rhs: Box::new(AST::Integer(3)),
+            }),
+        };
+
+        let mut parser = Parser::new(tokens.into_iter().peekable());
+        let ast = parser.program();
+    }
+
+    #[test]
+    fn parse_parenthesis_expression() {
+        let program = String::from("(1 + 1) * -2");
+        let lexer = Lexer::from(program);
+        let lexer = lexer.map(|token_result| token_result.unwrap()).peekable();
+        let mut parser = Parser::new(lexer);
+
+        let expected = AST::BinaryExpression {
+            operator: Operator::Star,
+            lhs: Box::new(AST::BinaryExpression {
+                operator: Operator::Plus,
+                lhs: Box::new(AST::Integer(1)),
+                rhs: Box::new(AST::Integer(1)),
+            }),
+            rhs: Box::new(AST::UnaryExpression {
+                operator: Operator::Minus,
+                expression: Box::new(AST::Integer(2)),
+            }),
+        };
+
+        let got_ast = parser.program().unwrap();
+        assert_eq!(expected, got_ast);
     }
 }
