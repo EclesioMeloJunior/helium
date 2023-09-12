@@ -55,6 +55,8 @@ dependencies = [
 name = "helium-llvm"
 version = "0.1.0"
 dependencies = [
+ "helium-lexer",
+ "helium-parser",
  "inkwell",
 ]
 

@@ -10,3 +10,5 @@ edition = "2021"
 inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = [
     "llvm16-0",
 ] }
+helium-parser = { path = "../helium-parser" }
+helium-lexer = { path = "../helium-lexer" }
