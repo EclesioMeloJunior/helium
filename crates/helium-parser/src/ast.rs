@@ -71,6 +71,14 @@ pub enum AST {
         lhs: Box<AST>,
         rhs: Box<AST>,
     },
+
+    FunctionLiteral {
+        name: String,
+        args: Vec<String>,
+        body: Vec<Box<AST>>,
+    },
+
+    ReturnStatement(Box<AST>),
 }
 
 impl From<(NumericType, String)> for AST {

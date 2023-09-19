@@ -27,7 +27,11 @@ mod tests {
             .create_jit_execution_engine(OptimizationLevel::None)
             .unwrap();
 
-        let program = String::from("2 + 5");
+        let program = String::from(
+            "func main() {
+            return 1 + 1
+        }",
+        );
         let lexer = Lexer::from(program);
         let lexer = lexer.map(|token_result| token_result.unwrap()).peekable();
 

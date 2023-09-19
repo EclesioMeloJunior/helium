@@ -4,17 +4,29 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::iter::Iterator;
 
-const MULTI_CHAR_TOKENS_MAPPING: [(&'static str, fn(String) -> Token); 3] = [
-    (r"^[0-9]+$", |lexeme| -> Token {
+const MULTI_CHAR_TOKENS_MAPPING: [(&'static str, fn(String) -> Token); 5] = [
+    (r"return$", |lexeme| -> Token {
         Token {
-            lexeme,
-            ttype: TokenType::Number(NumericType::Integer),
+            lexeme: lexeme,
+            ttype: TokenType::Return,
+        }
+    }),
+    (r"func$", |lexeme| -> Token {
+        Token {
+            lexeme: lexeme,
+            ttype: TokenType::Func,
         }
     }),
     (r"^[0-9]+\.[0-9]+$", |lexeme| -> Token {
         Token {
             lexeme: lexeme,
             ttype: TokenType::Number(NumericType::Float),
+        }
+    }),
+    (r"^[0-9]+$", |lexeme| -> Token {
+        Token {
+            lexeme,
+            ttype: TokenType::Number(NumericType::Integer),
         }
     }),
     (r"^[a-zA-Z_]+$", |lexeme| -> Token {
@@ -43,6 +55,9 @@ pub enum TokenType {
 
     OpenParen,
     CloseParen,
+
+    Func,
+    Return,
 }
 
 #[derive(Debug, PartialEq)]
