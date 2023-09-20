@@ -63,6 +63,8 @@ pub enum TokenType {
 
     OpenParen,
     CloseParen,
+    OpenBrackets,
+    CloseBrackets,
 
     Let,
     Func,

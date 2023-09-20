@@ -61,6 +61,11 @@ pub enum AST {
     Float(f32),
     Identifier(String),
 
+    LetStatment {
+        variable: String,
+        rhs: Box<AST>,
+    },
+
     UnaryExpression {
         operator: Operator,
         expression: Box<AST>,

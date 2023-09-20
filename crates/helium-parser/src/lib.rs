@@ -54,9 +54,9 @@ where
 
         // parse the first open paren
         self.token_stream
-            .next_if(|inner_token| match inner_token.ttype {
-                TokenType::OpenParen => true,
-                _ => false,
+            .next_if_eq(&Token {
+                lexeme: String::from("("),
+                ttype: TokenType::OpenParen,
             })
             .expect(
                 format!(
@@ -69,10 +69,10 @@ where
         // parser function arity
         let mut fn_arity: Vec<String> = vec![];
         loop {
-            match self.token_stream.peek() {
+            match self.token_stream.next() {
                 None => {
                     return Err(String::from(
-                        "EOF not expected while parsing function literal",
+                        "EOF not expected while parsing function arity",
                     ))
                 }
                 Some(token) if token.ttype == TokenType::CloseParen => break,
@@ -81,13 +81,36 @@ where
                 }
                 Some(token) => return Err(format!("expected function arguments, got {:?}", token)),
             }
-
-            self.token_stream.next().unwrap();
         }
+
+        // parse the first open paren
+        self.token_stream
+            .next_if_eq(&Token {
+                lexeme: String::from("{"),
+                ttype: TokenType::OpenBrackets,
+            })
+            .expect(
+                format!(
+                    "expected function open parenthesis, got {:?}",
+                    self.token_stream.peek()
+                )
+                .as_str(),
+            );
 
         // TODO: include `;` in the lexer, then will be a lot easier
         // to delimit a expression/statement inside a funtion
         let mut fn_body: Vec<Box<AST>> = vec![];
+
+        loop {
+            match self.token_stream.peek() {
+                None => return Err(String::from("EOF not expected while parsing function body")),
+                Some(token) if token.ttype == TokenType::CloseBrackets => {
+                    self.token_stream.next().unwrap();
+                    break;
+                }
+                _ => fn_body.push(Box::new(self.inner_expression(0)?)),
+            }
+        }
 
         Ok(AST::FunctionLiteral {
             name: fn_identifier.lexeme.to_string(),
@@ -96,13 +119,64 @@ where
         })
     }
 
+    fn parse_let_statment(&mut self) -> Result<AST, String> {
+        let identifier = self
+            .token_stream
+            .next_if(|inner_token| match inner_token.ttype {
+                TokenType::Identifier => true,
+                _ => false,
+            });
+
+        if identifier.is_none() {
+            return Err(format!(
+                "expected variable declaration, got {:?}",
+                self.token_stream.peek()
+            ));
+        }
+
+        if self
+            .token_stream
+            .next_if_eq(&Token {
+                lexeme: String::from("="),
+                ttype: TokenType::Assign,
+            })
+            .is_none()
+        {
+            return Err(format!(
+                "expected assignment symbol '=', got {:?}",
+                self.token_stream.peek()
+            ));
+        }
+
+        let assignment_expression = self.inner_expression(0)?;
+
+        self.token_stream
+            .next_if_eq(&Token {
+                lexeme: String::from(";"),
+                ttype: TokenType::Semicolon,
+            })
+            .expect(
+                format!(
+                    "let statment should end with `;` (semicolon), got {:?}",
+                    self.token_stream.peek()
+                )
+                .as_str(),
+            );
+
+        Ok(AST::LetStatment {
+            variable: identifier.unwrap().lexeme,
+            rhs: Box::new(assignment_expression),
+        })
+    }
+
     fn inner_expression(&mut self, min_biding_power: u8) -> Result<AST, String> {
         let mut lhs = match self.token_stream.next() {
             Some(token) => match token.ttype {
-                TokenType::Func => match self.parse_function_literal() {
-                    Ok(ast) => ast,
-                    Err(err) => return Err(err),
-                },
+                TokenType::Func => return self.parse_function_literal(),
+                TokenType::Let => return self.parse_let_statment(),
+                TokenType::Return => {
+                    return Ok(AST::ReturnStatement(Box::new(self.inner_expression(0)?)))
+                }
                 TokenType::Identifier => AST::Identifier(token.lexeme),
                 TokenType::Number(n) => AST::from((n, token.lexeme)),
                 TokenType::OpenParen => {
@@ -139,7 +213,13 @@ where
         loop {
             let operator = match self.token_stream.peek() {
                 None => break,
-                Some(token) if token.ttype == TokenType::CloseParen => break,
+                Some(token)
+                    if token.ttype == TokenType::Semicolon
+                        || token.ttype == TokenType::CloseParen
+                        || token.ttype == TokenType::CloseBrackets =>
+                {
+                    break
+                }
                 Some(token) => Operator::try_from(token)?,
             };
 
@@ -330,7 +410,12 @@ mod tests {
 
     #[test]
     fn parse_main_function() {
-        let program = String::from("func main() { return 1 + 1}");
+        let program = String::from(
+            "func main() { 
+                let a = 1 + 1;
+                return a
+            }",
+        );
         let lexer = Lexer::from(program);
         let lexer = lexer.map(|token_result| token_result.unwrap()).peekable();
         let mut parser = Parser::new(lexer);
@@ -338,16 +423,54 @@ mod tests {
         let expected = AST::FunctionLiteral {
             name: String::from("main"),
             args: vec![],
-            body: vec![Box::new(AST::ReturnStatement(Box::new(
-                AST::BinaryExpression {
-                    operator: Operator::Plus,
-                    lhs: Box::new(AST::Integer(1)),
-                    rhs: Box::new(AST::Integer(1)),
-                },
-            )))],
+            body: vec![
+                Box::new(AST::LetStatment {
+                    variable: String::from("a"),
+                    rhs: Box::new(AST::BinaryExpression {
+                        operator: Operator::Plus,
+                        lhs: Box::new(AST::Integer(1)),
+                        rhs: Box::new(AST::Integer(1)),
+                    }),
+                }),
+                Box::new(AST::ReturnStatement(Box::new(AST::Identifier(
+                    String::from("a"),
+                )))),
+            ],
         };
 
         let got_ast = parser.program().unwrap();
         assert_eq!(expected, got_ast);
+        println!("{got_ast:?}")
+    }
+
+    #[test]
+    fn parse_function_with_args() {
+        let program = String::from(
+            "func main(a, b) { 
+                let c = a + b;
+                return a
+            }",
+        );
+        let lexer = Lexer::from(program);
+        let lexer = lexer.map(|token_result| token_result.unwrap()).peekable();
+        let mut parser = Parser::new(lexer);
+
+        let expected = AST::FunctionLiteral {
+            name: String::from("main"),
+            args: vec![String::from("a"), String::from("b")],
+            body: vec![
+                Box::new(AST::LetStatment {
+                    variable: String::from("c"),
+                    rhs: Box::new(AST::BinaryExpression {
+                        operator: Operator::Plus,
+                        lhs: Box::new(AST::Identifier(String::from("a"))),
+                        rhs: Box::new(AST::Identifier(String::from("b"))),
+                    }),
+                }),
+                Box::new(AST::ReturnStatement(Box::new(AST::Identifier(
+                    String::from("c"),
+                )))),
+            ],
+        };
     }
 }

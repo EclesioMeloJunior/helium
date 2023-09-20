@@ -96,6 +96,18 @@ where
                         ttype: TokenType::CloseParen,
                     }))
                 }
+                '{' => {
+                    return Some(Ok(Token {
+                        lexeme: String::from("{"),
+                        ttype: TokenType::OpenBrackets,
+                    }))
+                }
+                '}' => {
+                    return Some(Ok(Token {
+                        lexeme: String::from("}"),
+                        ttype: TokenType::CloseBrackets,
+                    }))
+                }
                 ';' => {
                     return Some(Ok(Token {
                         lexeme: String::from(";"),
@@ -139,7 +151,8 @@ mod tests {
 
     #[test]
     fn read_stream_of_tokens() {
-        let tokens_as_str = String::from("(0-1) 12 + 1 helium h_e_lium 1.22 printf(1) return func");
+        let tokens_as_str =
+            String::from("(0-1) 12 + 1 helium h_e_lium 1.22 printf(1) return func main() {}");
         let expected: Vec<Token> = vec![
             Token {
                 lexeme: String::from("("),
@@ -208,6 +221,26 @@ mod tests {
             Token {
                 lexeme: String::from("func"),
                 ttype: TokenType::Func,
+            },
+            Token {
+                lexeme: String::from("main"),
+                ttype: TokenType::Identifier,
+            },
+            Token {
+                lexeme: String::from("("),
+                ttype: TokenType::OpenParen,
+            },
+            Token {
+                lexeme: String::from(")"),
+                ttype: TokenType::CloseParen,
+            },
+            Token {
+                lexeme: String::from("{"),
+                ttype: TokenType::OpenBrackets,
+            },
+            Token {
+                lexeme: String::from("}"),
+                ttype: TokenType::CloseBrackets,
             },
         ];
 
