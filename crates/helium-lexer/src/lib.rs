@@ -96,6 +96,18 @@ where
                         ttype: TokenType::CloseParen,
                     }))
                 }
+                ';' => {
+                    return Some(Ok(Token {
+                        lexeme: String::from(";"),
+                        ttype: TokenType::Semicolon,
+                    }))
+                }
+                '=' => {
+                    return Some(Ok(Token {
+                        lexeme: String::from("="),
+                        ttype: TokenType::Assign,
+                    }))
+                }
                 _ => {
                     let mut full_term: Vec<char> = vec![stream_item];
                     if stream_item.is_alphabetic() || stream_item == '_' {
@@ -112,7 +124,6 @@ where
                         );
                     }
 
-                    println!(">>{:?}", full_term);
                     return Some(Token::try_from(full_term));
                 }
             }
@@ -221,5 +232,40 @@ mod tests {
 
         let err = token_result.unwrap_err();
         assert_eq!(err, String::from("token not defined: \"1.209.90\""))
+    }
+
+    #[test]
+    fn read_statement_with_semicolon() {
+        let input = String::from("let a=10;");
+        let mut lexer = Lexer::from(input);
+
+        let expected = vec![
+            Token {
+                lexeme: String::from("let"),
+                ttype: TokenType::Let,
+            },
+            Token {
+                lexeme: String::from("a"),
+                ttype: TokenType::Identifier,
+            },
+            Token {
+                lexeme: String::from("="),
+                ttype: TokenType::Assign,
+            },
+            Token {
+                lexeme: String::from("10"),
+                ttype: TokenType::Number(NumericType::Integer),
+            },
+            Token {
+                lexeme: String::from(";"),
+                ttype: TokenType::Semicolon,
+            },
+        ];
+
+        assert_eq!(lexer.clone().count(), expected.len() as usize);
+
+        for (expected, got) in expected.into_iter().zip(lexer.map(|r| r.unwrap())) {
+            assert_eq!(expected, got);
+        }
     }
 }

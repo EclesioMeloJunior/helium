@@ -81,13 +81,13 @@ where
                 }
                 Some(token) => return Err(format!("expected function arguments, got {:?}", token)),
             }
+
+            self.token_stream.next().unwrap();
         }
 
         // TODO: include `;` in the lexer, then will be a lot easier
         // to delimit a expression/statement inside a funtion
         let mut fn_body: Vec<Box<AST>> = vec![];
-
-        loop {}
 
         Ok(AST::FunctionLiteral {
             name: fn_identifier.lexeme.to_string(),
