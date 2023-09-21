@@ -14,6 +14,8 @@ use inkwell::{
 
 #[cfg(test)]
 mod tests {
+    use crate::backend::Generator;
+
     use super::*;
     use helium_lexer::{self, Lexer};
     use helium_parser::{self, Parser};
@@ -29,8 +31,9 @@ mod tests {
 
         let program = String::from(
             "func main() {
-            return 1 + 1
-        }",
+                let a = 1 + 1;
+                return a
+            }",
         );
         let lexer = Lexer::from(program);
         let lexer = lexer.map(|token_result| token_result.unwrap()).peekable();
@@ -38,11 +41,14 @@ mod tests {
         let mut parser = Parser::new(lexer);
         let ast = parser.program().unwrap();
 
-        let main_fn = backend::main_fn(&context, &module, execution_engine, ast).unwrap();
-        module.print_to_file("output.ll");
+        println!("{ast:?}");
 
-        unsafe {
-            println!("{}", main_fn.call());
-        }
+        let mut generator = backend::Generator::new(&context, module, execution_engine);
+
+        let main_fn = generator.generate(ast).unwrap();
+
+        // unsafe {
+        //     println!("{}", main_fn.call());
+        // }
     }
 }
