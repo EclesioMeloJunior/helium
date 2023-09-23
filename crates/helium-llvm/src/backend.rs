@@ -102,6 +102,18 @@ impl<'ctx> Generator<'ctx> {
                 let i32_type = self.context.i32_type();
                 Eval::Int(i32_type.const_int(int_value as u64, false))
             }
+            AST::Identifier(identifier) => {
+                let loaded_value = builder
+                    .build_load(
+                        self.context.i32_type(),
+                        *self.variables.get(&identifier).unwrap(),
+                        identifier.as_str(),
+                    )
+                    .unwrap()
+                    .into_int_value();
+
+                Eval::Int(loaded_value)
+            }
             AST::BinaryExpression { operator, lhs, rhs } => {
                 let eval_lhs = self.evaluate_inner(&builder, *lhs);
                 let eval_rhs = self.evaluate_inner(&builder, *rhs);

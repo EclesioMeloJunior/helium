@@ -32,7 +32,9 @@ mod tests {
         let program = String::from(
             "func main() {
                 let a = 1 + 1;
-                return a
+                let b = 1 + 1;
+                let c = a + b;
+                return c
             }",
         );
         let lexer = Lexer::from(program);
@@ -47,8 +49,8 @@ mod tests {
 
         let main_fn = generator.generate(ast).unwrap();
 
-        // unsafe {
-        //     println!("{}", main_fn.call());
-        // }
+        unsafe {
+            println!("{}", main_fn.call());
+        }
     }
 }
