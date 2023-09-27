@@ -2,7 +2,7 @@
 
 pub mod ast;
 
-use ast::{Operator, AST};
+use ast::{Operator, Type, AST};
 use helium_lexer::{
     token::{self, NumericType, Token, TokenType},
     Lexer,
@@ -97,6 +97,15 @@ where
                 .as_str(),
             );
 
+        self.token_stream
+            .next_if_eq(&Token {
+                lexeme: String::from(":"),
+                ttype: TokenType::Colon,
+            })
+            .expect(format!("expected colon (:), got {:?}", self.token_stream.peek()).as_str());
+
+        let return_type = Type::try_from(self.token_stream.next().unwrap()).unwrap();
+
         // TODO: include `;` in the lexer, then will be a lot easier
         // to delimit a expression/statement inside a funtion
         let mut fn_body: Vec<Box<AST>> = vec![];
@@ -115,6 +124,7 @@ where
         Ok(AST::FunctionLiteral {
             name: fn_identifier.lexeme.to_string(),
             args: fn_arity,
+            return_type: return_type,
             body: fn_body,
         })
     }
@@ -133,6 +143,15 @@ where
                 self.token_stream.peek()
             ));
         }
+
+        self.token_stream
+            .next_if_eq(&Token {
+                lexeme: String::from(":"),
+                ttype: TokenType::Colon,
+            })
+            .expect(format!("expect colon (:), got {:?}", self.token_stream.peek()).as_str());
+
+        let let_stmt_type = Type::try_from(self.token_stream.next().unwrap()).unwrap();
 
         if self
             .token_stream
@@ -164,6 +183,7 @@ where
             );
 
         Ok(AST::LetStatment {
+            var_type: let_stmt_type,
             variable: identifier.unwrap().lexeme,
             rhs: Box::new(assignment_expression),
         })
@@ -251,7 +271,7 @@ mod tests {
     };
 
     use crate::{
-        ast::{Operator, AST},
+        ast::{Operator, Type, AST},
         Parser,
     };
 
@@ -411,8 +431,8 @@ mod tests {
     #[test]
     fn parse_main_function() {
         let program = String::from(
-            "func main() { 
-                let a = 1 + 1;
+            "func main() : i32 { 
+                let a : i32 = 1 + 1;
                 return a
             }",
         );
@@ -422,9 +442,11 @@ mod tests {
 
         let expected = AST::FunctionLiteral {
             name: String::from("main"),
+            return_type: Some(Type::I32),
             args: vec![],
             body: vec![
                 Box::new(AST::LetStatment {
+                    var_type: Type::I32,
                     variable: String::from("a"),
                     rhs: Box::new(AST::BinaryExpression {
                         operator: Operator::Plus,
@@ -446,9 +468,9 @@ mod tests {
     #[test]
     fn parse_function_with_args() {
         let program = String::from(
-            "func main(a, b) { 
-                let c = a + b;
-                return a
+            "func main(a: i32, b: i32) : i32 { 
+                let c : i32 = a + b;
+                return c
             }",
         );
         let lexer = Lexer::from(program);
@@ -456,10 +478,15 @@ mod tests {
         let mut parser = Parser::new(lexer);
 
         let expected = AST::FunctionLiteral {
+            return_type: Some(Type::I32),
             name: String::from("main"),
-            args: vec![String::from("a"), String::from("b")],
+            args: vec![
+                (String::from("a"), Type::I32),
+                (String::from("b"), Type::I32),
+            ],
             body: vec![
                 Box::new(AST::LetStatment {
+                    var_type: Type::I32,
                     variable: String::from("c"),
                     rhs: Box::new(AST::BinaryExpression {
                         operator: Operator::Plus,

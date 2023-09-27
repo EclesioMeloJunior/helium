@@ -50,6 +50,34 @@ impl TryFrom<&Token> for Operator {
 }
 
 #[derive(Debug, PartialEq)]
+pub enum Type {
+    I32,
+    F32,
+    Void,
+}
+
+impl TryFrom<Token> for Type {
+    type Error = String;
+    fn try_from(value: Token) -> Result<Self, Self::Error> {
+        match value.ttype {
+            TokenType::Type => match value.lexeme.as_str() {
+                "i32" => Ok(Type::I32),
+                "f32" => Ok(Type::F32),
+                _ => Err(format!(
+                    "type not defined: '{}' ({:?})",
+                    value.lexeme, value.ttype
+                )),
+            },
+            TokenType::Void => Ok(Type::Void),
+            _ => Err(format!(
+                "operator not defined: '{}' ({:?})",
+                value.lexeme, value.ttype
+            )),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
 pub enum Unary {
     Operator(Operator),
     Expression(Box<AST>),
@@ -64,6 +92,7 @@ pub enum AST {
     LetStatment {
         variable: String,
         rhs: Box<AST>,
+        var_type: Type,
     },
 
     UnaryExpression {
@@ -79,8 +108,9 @@ pub enum AST {
 
     FunctionLiteral {
         name: String,
-        args: Vec<String>,
+        args: Vec<(String, Type)>,
         body: Vec<Box<AST>>,
+        return_type: Type,
     },
 
     ReturnStatement(Box<AST>),
