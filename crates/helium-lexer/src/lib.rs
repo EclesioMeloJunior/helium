@@ -120,20 +120,20 @@ where
                         ttype: TokenType::Assign,
                     }))
                 }
+                ':' => {
+                    return Some(Ok(Token {
+                        lexeme: String::from(":"),
+                        ttype: TokenType::Colon,
+                    }))
+                }
                 _ => {
                     let mut full_term: Vec<char> = vec![stream_item];
-                    if stream_item.is_alphabetic() || stream_item == '_' {
-                        full_term.extend(
-                            self.next_while(|i| {
-                                (*i as char).is_alphabetic() || (*i as char) == '_'
-                            }),
-                        );
-                    }
-
-                    if stream_item.is_numeric() {
-                        full_term.extend(
-                            self.next_while(|i| (*i as char).is_numeric() || (*i as char) == '.'),
-                        );
+                    if stream_item.is_alphanumeric() || stream_item == '_' {
+                        full_term.extend(self.next_while(|i| {
+                            (*i as char).is_alphanumeric()
+                                || (*i as char) == '_'
+                                || (*i as char) == '.'
+                        }));
                     }
 
                     return Some(Token::try_from(full_term));
@@ -149,10 +149,23 @@ mod tests {
     use crate::token::{NumericType, Token, TokenType};
     use crate::Lexer;
 
+    fn tokens_comparision_helper(input: String, expected: Vec<Token>) -> bool {
+        let input = String::from(input);
+        let mut lexer = Lexer::from(input);
+
+        assert_eq!(lexer.clone().count(), expected.len() as usize);
+
+        expected
+            .into_iter()
+            .zip(lexer.map(|r| r.unwrap()))
+            .map(|(expected, got)| expected == got)
+            .all(|item| item)
+    }
+
     #[test]
     fn read_stream_of_tokens() {
-        let tokens_as_str =
-            String::from("(0-1) 12 + 1 helium h_e_lium 1.22 printf(1) return func main() {}");
+        let input =
+            String::from("(0-1) 12 + 1 helium h_e_lium 1.22 printf(1) return func main() {} : i32");
         let expected: Vec<Token> = vec![
             Token {
                 lexeme: String::from("("),
@@ -242,14 +255,17 @@ mod tests {
                 lexeme: String::from("}"),
                 ttype: TokenType::CloseBrackets,
             },
+            Token {
+                lexeme: String::from(":"),
+                ttype: TokenType::Colon,
+            },
+            Token {
+                lexeme: String::from("i32"),
+                ttype: TokenType::Type,
+            },
         ];
 
-        let lexer = Lexer::from(tokens_as_str);
-        assert_eq!(lexer.clone().count(), expected.len() as usize);
-
-        for (expected, got) in expected.into_iter().zip(lexer.map(|r| r.unwrap())) {
-            assert_eq!(expected, got);
-        }
+        assert!(tokens_comparision_helper(input, expected));
     }
 
     #[test]
@@ -270,7 +286,6 @@ mod tests {
     #[test]
     fn read_statement_with_semicolon() {
         let input = String::from("let a=10;");
-        let mut lexer = Lexer::from(input);
 
         let expected = vec![
             Token {
@@ -295,10 +310,109 @@ mod tests {
             },
         ];
 
-        assert_eq!(lexer.clone().count(), expected.len() as usize);
+        assert!(tokens_comparision_helper(input, expected));
+    }
 
-        for (expected, got) in expected.into_iter().zip(lexer.map(|r| r.unwrap())) {
-            assert_eq!(expected, got);
-        }
+    #[test]
+    fn parsing_types_variables_functions() {
+        let input = String::from("let a : i32 = 10;");
+        let expected = vec![
+            Token {
+                lexeme: String::from("let"),
+                ttype: TokenType::Let,
+            },
+            Token {
+                lexeme: String::from("a"),
+                ttype: TokenType::Identifier,
+            },
+            Token {
+                lexeme: String::from(":"),
+                ttype: TokenType::Colon,
+            },
+            Token {
+                lexeme: String::from("i32"),
+                ttype: TokenType::Type,
+            },
+            Token {
+                lexeme: String::from("="),
+                ttype: TokenType::Assign,
+            },
+            Token {
+                lexeme: String::from("10"),
+                ttype: TokenType::Number(NumericType::Integer),
+            },
+            Token {
+                lexeme: String::from(";"),
+                ttype: TokenType::Semicolon,
+            },
+        ];
+
+        assert!(tokens_comparision_helper(input, expected));
+
+        let input = String::from(
+            "func main(a: f32) : i32 {
+                return 0;
+            }",
+        );
+        let expected = vec![
+            Token {
+                lexeme: String::from("func"),
+                ttype: TokenType::Func,
+            },
+            Token {
+                lexeme: String::from("main"),
+                ttype: TokenType::Identifier,
+            },
+            Token {
+                lexeme: String::from("("),
+                ttype: TokenType::OpenParen,
+            },
+            Token {
+                lexeme: String::from("a"),
+                ttype: TokenType::Identifier,
+            },
+            Token {
+                lexeme: String::from(":"),
+                ttype: TokenType::Colon,
+            },
+            Token {
+                lexeme: String::from("f32"),
+                ttype: TokenType::Type,
+            },
+            Token {
+                lexeme: String::from(")"),
+                ttype: TokenType::CloseParen,
+            },
+            Token {
+                lexeme: String::from(":"),
+                ttype: TokenType::Colon,
+            },
+            Token {
+                lexeme: String::from("i32"),
+                ttype: TokenType::Type,
+            },
+            Token {
+                lexeme: String::from("{"),
+                ttype: TokenType::OpenBrackets,
+            },
+            Token {
+                lexeme: String::from("return"),
+                ttype: TokenType::Return,
+            },
+            Token {
+                lexeme: String::from("0"),
+                ttype: TokenType::Number(NumericType::Integer),
+            },
+            Token {
+                lexeme: String::from(";"),
+                ttype: TokenType::Semicolon,
+            },
+            Token {
+                lexeme: String::from("}"),
+                ttype: TokenType::CloseBrackets,
+            },
+        ];
+
+        assert!(tokens_comparision_helper(input, expected));
     }
 }

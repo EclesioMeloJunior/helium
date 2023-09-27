@@ -4,7 +4,13 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::iter::Iterator;
 
-const MULTI_CHAR_TOKENS_MAPPING: [(&'static str, fn(String) -> Token); 6] = [
+const MULTI_CHAR_TOKENS_MAPPING: [(&'static str, fn(String) -> Token); 7] = [
+    (r"^(i32|f32)$", |lexeme| -> Token {
+        Token {
+            lexeme: lexeme,
+            ttype: TokenType::Type,
+        }
+    }),
     (r"let$", |lexeme| -> Token {
         Token {
             lexeme: lexeme,
@@ -51,6 +57,7 @@ pub enum NumericType {
 
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
+    Type,
     Identifier,
     Number(NumericType),
 
@@ -61,6 +68,7 @@ pub enum TokenType {
     Slash,
     Semicolon,
 
+    Colon,
     OpenParen,
     CloseParen,
     OpenBrackets,
