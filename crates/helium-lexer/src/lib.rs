@@ -414,5 +414,58 @@ mod tests {
         ];
 
         assert!(tokens_comparision_helper(input, expected));
+
+        let input = String::from(
+            "func main(a: f32) : void {
+            }",
+        );
+        let expected = vec![
+            Token {
+                lexeme: String::from("func"),
+                ttype: TokenType::Func,
+            },
+            Token {
+                lexeme: String::from("main"),
+                ttype: TokenType::Identifier,
+            },
+            Token {
+                lexeme: String::from("("),
+                ttype: TokenType::OpenParen,
+            },
+            Token {
+                lexeme: String::from("a"),
+                ttype: TokenType::Identifier,
+            },
+            Token {
+                lexeme: String::from(":"),
+                ttype: TokenType::Colon,
+            },
+            Token {
+                lexeme: String::from("f32"),
+                ttype: TokenType::Type,
+            },
+            Token {
+                lexeme: String::from(")"),
+                ttype: TokenType::CloseParen,
+            },
+            Token {
+                lexeme: String::from(":"),
+                ttype: TokenType::Colon,
+            },
+            Token {
+                lexeme: String::from("void"),
+                ttype: TokenType::Void,
+            },
+            Token {
+                lexeme: String::from("{"),
+                ttype: TokenType::OpenBrackets,
+            },
+            Token {
+                lexeme: String::from("}"),
+                ttype: TokenType::CloseBrackets,
+            },
+        ];
+
+        assert!(tokens_comparision_helper(input, expected));
     }
 }
