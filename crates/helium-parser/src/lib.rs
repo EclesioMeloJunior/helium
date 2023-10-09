@@ -67,19 +67,37 @@ where
             );
 
         // parser function arity
-        let mut fn_arity: Vec<String> = vec![];
+        let mut fn_arity: Vec<(String, Type)> = vec![];
         loop {
             match self.token_stream.next() {
+                Some(token) if token.ttype == TokenType::CloseParen => break,
+                Some(token) if token.ttype == TokenType::Identifier => {
+                    let argument_identifier = token.lexeme.to_string();
+
+                    self.token_stream
+                        .next_if_eq(&Token {
+                            lexeme: String::from(":"),
+                            ttype: TokenType::Colon,
+                        })
+                        .expect(
+                            format!("expected colon, got {:?}", self.token_stream.peek()).as_str(),
+                        );
+
+                    let argument_type = match self.token_stream.next() {
+                        Some(value) => Type::try_from(value)?,
+                        None => {
+                            return Err(String::from("expected argument type definition, got None"))
+                        }
+                    };
+
+                    fn_arity.push((argument_identifier, argument_type));
+                }
+                Some(token) => return Err(format!("expected function arguments, got {:?}", token)),
                 None => {
                     return Err(String::from(
                         "EOF not expected while parsing function arity",
                     ))
                 }
-                Some(token) if token.ttype == TokenType::CloseParen => break,
-                Some(token) if token.ttype == TokenType::Identifier => {
-                    fn_arity.push(token.lexeme.to_string())
-                }
-                Some(token) => return Err(format!("expected function arguments, got {:?}", token)),
             }
         }
 
@@ -442,7 +460,7 @@ mod tests {
 
         let expected = AST::FunctionLiteral {
             name: String::from("main"),
-            return_type: Some(Type::I32),
+            return_type: Type::I32,
             args: vec![],
             body: vec![
                 Box::new(AST::LetStatment {
@@ -478,7 +496,7 @@ mod tests {
         let mut parser = Parser::new(lexer);
 
         let expected = AST::FunctionLiteral {
-            return_type: Some(Type::I32),
+            return_type: Type::I32,
             name: String::from("main"),
             args: vec![
                 (String::from("a"), Type::I32),
