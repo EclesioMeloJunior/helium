@@ -1,5 +1,6 @@
 #![allow(unused)]
 pub mod backend;
+pub mod context;
 
 use helium_parser::ast::{Operator, AST};
 use inkwell::{

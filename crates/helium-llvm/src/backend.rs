@@ -1,3 +1,4 @@
+use crate::context::FunctionContext;
 use helium_parser::ast::{Operator, AST};
 use inkwell::{
     builder::Builder,
@@ -38,7 +39,18 @@ impl<'ctx> Generator<'ctx> {
 
     pub fn generate(&mut self, ast: AST) -> Option<JitFunction<'ctx, MainFunc>> {
         match ast {
-            AST::FunctionLiteral { name, args, body } => {
+            AST::FunctionLiteral {
+                name,
+                args,
+                body,
+                return_type,
+            } => {
+                let mut function_ctx =
+                    FunctionContext::new(name.as_str(), self.context, self.module);
+
+                function_ctx.with_argument_types(args.into_iter().map(|item| item.1).collect());
+                function_ctx.with_return(return_type);
+
                 let i32_type = self.context.i32_type();
                 let main_fn_type = i32_type.fn_type(&[], false);
                 let main_fn = self.module.add_function(name.as_str(), main_fn_type, None);
