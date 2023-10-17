@@ -23,7 +23,7 @@ mod tests {
     use inkwell::OptimizationLevel;
 
     #[test]
-    fn code_gen_simple_sum() {
+    fn simple_variable_sum() {
         let context = Context::create();
         let module = context.create_module("main_helium");
         let execution_engine = module
@@ -33,7 +33,8 @@ mod tests {
         let program = String::from(
             "func main() : i32 { 
                 let c : i32 = 1 + 1;
-                return c
+                let b : i32 = c + 1;
+                return b
             }",
         );
         let lexer = Lexer::from(program);

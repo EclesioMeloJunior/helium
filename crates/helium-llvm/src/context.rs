@@ -9,6 +9,18 @@ use inkwell::{
     values::{BasicValue, FloatValue, FunctionValue, InstructionValue, IntValue, PointerValue},
 };
 
+struct ContextBasicTypeEnum<'ctx>(BasicTypeEnum<'ctx>);
+
+impl<'ctx> Into<Type> for ContextBasicTypeEnum<'ctx> {
+    fn into(self) -> Type {
+        match self.0 {
+            BasicTypeEnum::IntType(_) => Type::I32,
+            BasicTypeEnum::FloatType(_) => Type::F32,
+            _ => Type::Void,
+        }
+    }
+}
+
 enum Value<'ctx> {
     Int(IntValue<'ctx>),
     Float(FloatValue<'ctx>),
@@ -99,7 +111,7 @@ impl<'a, 'ctx> FunctionContext<'a, 'ctx> {
                     rhs,
                     var_type,
                 } => {
-                    let expression = self.evaluate_inner(builder, *rhs, None);
+                    let expression = self.evaluate_inner(builder, *rhs, var_type);
 
                     let pointer_value = match var_type {
                         Type::I32 => builder
@@ -118,17 +130,24 @@ impl<'a, 'ctx> FunctionContext<'a, 'ctx> {
                     self.variables.insert(variable, pointer_value);
                 }
                 AST::ReturnStatement(expr) => {
-                    let fn_type = self.fn_value.unwrap().get_type().get_return_type();
+                    let fn_type: Type = if let Some(fn_type) =
+                        self.fn_value.unwrap().get_type().get_return_type()
+                    {
+                        ContextBasicTypeEnum(fn_type).into()
+                    } else {
+                        Type::Void
+                    };
+
                     let return_value = self.evaluate_inner(builder, *expr, fn_type);
 
                     match fn_type {
-                        Some(BasicTypeEnum::IntType(_)) => {
+                        Type::I32 => {
                             match return_value {
                                 Value::Int(int_value) => builder.build_return(Some(&int_value)),
                                 _ => panic!("expected type integer"),
                             };
                         }
-                        Some(BasicTypeEnum::FloatType(_)) => {
+                        Type::F32 => {
                             match return_value {
                                 Value::Float(float_value) => {
                                     builder.build_return(Some(&float_value))
@@ -144,12 +163,7 @@ impl<'a, 'ctx> FunctionContext<'a, 'ctx> {
         }
     }
 
-    fn evaluate_inner(
-        &mut self,
-        builder: &Builder<'ctx>,
-        ast: AST,
-        ttype: Option<BasicTypeEnum<'ctx>>,
-    ) -> Value<'ctx> {
+    fn evaluate_inner(&mut self, builder: &Builder<'ctx>, ast: AST, ttype: Type) -> Value<'ctx> {
         match ast {
             AST::Float(float_value) => {
                 let f32_type = self.context.f32_type();
@@ -160,7 +174,7 @@ impl<'a, 'ctx> FunctionContext<'a, 'ctx> {
                 Value::Int(i32_type.const_int(int_value as u64, false))
             }
             AST::Identifier(identifier) => match ttype {
-                Some(IntValue) => {
+                Type::I32 => {
                     let int_value = builder
                         .build_load(
                             self.context.i32_type(),
@@ -171,7 +185,7 @@ impl<'a, 'ctx> FunctionContext<'a, 'ctx> {
                         .into_int_value();
                     Value::Int(int_value)
                 }
-                Some(FloatValue) => {
+                Type::F32 => {
                     let float_value = builder
                         .build_load(
                             self.context.f32_type(),
@@ -182,7 +196,7 @@ impl<'a, 'ctx> FunctionContext<'a, 'ctx> {
                         .into_float_value();
                     Value::Float(float_value)
                 }
-                None => panic!("expected ttype"),
+                _ => panic!("expected ttype"),
             },
             AST::BinaryExpression { operator, lhs, rhs } => {
                 let eval_lhs = self.evaluate_inner(builder, *lhs, ttype);
