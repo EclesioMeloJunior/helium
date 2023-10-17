@@ -52,7 +52,7 @@ impl<'ctx> Generator<'ctx> {
                 function_ctx.with_return(return_type);
                 function_ctx.with_body(body);
 
-                self.module.print_to_file("output.ll");
+                //self.module.print_to_file("output.ll");
 
                 unsafe { self.execution_engine.get_function(name.as_str()).ok() }
             }

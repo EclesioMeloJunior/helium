@@ -125,8 +125,6 @@ where
                 .as_str(),
             );
 
-        // TODO: include `;` in the lexer, then will be a lot easier
-        // to delimit a expression/statement inside a funtion
         let mut fn_body: Vec<Box<AST>> = vec![];
 
         loop {
