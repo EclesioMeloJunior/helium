@@ -31,10 +31,8 @@ mod tests {
             .unwrap();
 
         let program = String::from(
-            "func main() {
-                let a = 1 + 1;
-                let b = 1 + 1;
-                let c = a + b;
+            "func main() : i32 { 
+                let c : i32 = 1 + 1;
                 return c
             }",
         );

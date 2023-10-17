@@ -45,21 +45,12 @@ impl<'ctx> Generator<'ctx> {
                 body,
                 return_type,
             } => {
-                let mut function_ctx =
-                    FunctionContext::new(name.as_str(), self.context, self.module);
+                let fn_name = name.clone();
+                let mut function_ctx = FunctionContext::new(fn_name, self.context, &self.module);
 
                 function_ctx.with_argument_types(args.into_iter().map(|item| item.1).collect());
                 function_ctx.with_return(return_type);
-
-                let i32_type = self.context.i32_type();
-                let main_fn_type = i32_type.fn_type(&[], false);
-                let main_fn = self.module.add_function(name.as_str(), main_fn_type, None);
-                let basic_block = self.context.append_basic_block(main_fn, "entry");
-
-                let builder = self.context.create_builder();
-                builder.position_at_end(basic_block);
-
-                self.evaluate_stmts(&builder, body);
+                function_ctx.with_body(body);
 
                 self.module.print_to_file("output.ll");
 
@@ -72,7 +63,11 @@ impl<'ctx> Generator<'ctx> {
     fn evaluate_stmts(&mut self, builder: &Builder<'ctx>, stmts: Vec<Box<AST>>) {
         for stmt in stmts {
             match *stmt {
-                AST::LetStatment { variable, rhs } => {
+                AST::LetStatment {
+                    variable,
+                    rhs,
+                    var_type,
+                } => {
                     let expression = self.evaluate_inner(builder, *rhs);
                     let i32_type = self.context.i32_type();
                     let p_value = builder.build_alloca(i32_type, variable.as_str()).unwrap();

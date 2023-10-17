@@ -40,7 +40,7 @@ where
         // parse the function identifier
         let fn_identifier = self
             .token_stream
-            .next_if(|inner_token| match inner_token.ttype {
+            .next_if(|inner_token: &Token| match inner_token.ttype {
                 TokenType::Identifier => true,
                 _ => false,
             })
@@ -101,20 +101,7 @@ where
             }
         }
 
-        // parse the first open paren
-        self.token_stream
-            .next_if_eq(&Token {
-                lexeme: String::from("{"),
-                ttype: TokenType::OpenBrackets,
-            })
-            .expect(
-                format!(
-                    "expected function open parenthesis, got {:?}",
-                    self.token_stream.peek()
-                )
-                .as_str(),
-            );
-
+        // parse the return type
         self.token_stream
             .next_if_eq(&Token {
                 lexeme: String::from(":"),
@@ -123,6 +110,20 @@ where
             .expect(format!("expected colon (:), got {:?}", self.token_stream.peek()).as_str());
 
         let return_type = Type::try_from(self.token_stream.next().unwrap()).unwrap();
+
+        // parse the first open brackets
+        self.token_stream
+            .next_if_eq(&Token {
+                lexeme: String::from("{"),
+                ttype: TokenType::OpenBrackets,
+            })
+            .expect(
+                format!(
+                    "expected function open brackets, got {:?}",
+                    self.token_stream.peek()
+                )
+                .as_str(),
+            );
 
         // TODO: include `;` in the lexer, then will be a lot easier
         // to delimit a expression/statement inside a funtion
@@ -456,6 +457,7 @@ mod tests {
         );
         let lexer = Lexer::from(program);
         let lexer = lexer.map(|token_result| token_result.unwrap()).peekable();
+
         let mut parser = Parser::new(lexer);
 
         let expected = AST::FunctionLiteral {
@@ -480,7 +482,6 @@ mod tests {
 
         let got_ast = parser.program().unwrap();
         assert_eq!(expected, got_ast);
-        println!("{got_ast:?}")
     }
 
     #[test]
