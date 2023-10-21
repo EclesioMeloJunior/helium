@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::iter::Iterator;
 
-const MULTI_CHAR_TOKENS_MAPPING: [(&'static str, fn(String) -> Token); 8] = [
-    (r"^(i32|f32)$", |lexeme| -> Token {
+const MULTI_CHAR_TOKENS_MAPPING: [(&'static str, fn(String) -> Token); 12] = [
+    (r"^(i32|f32|bool)$", |lexeme| -> Token {
         Token {
             lexeme: lexeme,
             ttype: TokenType::Type,
@@ -33,6 +33,30 @@ const MULTI_CHAR_TOKENS_MAPPING: [(&'static str, fn(String) -> Token); 8] = [
         Token {
             lexeme: lexeme,
             ttype: TokenType::Func,
+        }
+    }),
+    (r"^if$", |lexeme| -> Token {
+        Token {
+            lexeme: lexeme,
+            ttype: TokenType::If,
+        }
+    }),
+    (r"^else$", |lexeme| -> Token {
+        Token {
+            lexeme: lexeme,
+            ttype: TokenType::Else,
+        }
+    }),
+    (r"^true$", |lexeme| -> Token {
+        Token {
+            lexeme: lexeme,
+            ttype: TokenType::True,
+        }
+    }),
+    (r"^false$", |lexeme| -> Token {
+        Token {
+            lexeme: lexeme,
+            ttype: TokenType::False,
         }
     }),
     (r"^[0-9]+\.[0-9]+$", |lexeme| -> Token {
@@ -84,6 +108,11 @@ pub enum TokenType {
     Func,
     Return,
     Void,
+    If,
+    Else,
+
+    True,
+    False,
 }
 
 #[derive(Debug, PartialEq)]

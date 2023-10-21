@@ -468,4 +468,84 @@ mod tests {
 
         assert!(tokens_comparision_helper(input, expected));
     }
+
+    #[test]
+    fn boolean_type_and_conditional_flow() {
+        let input = String::from(
+            "
+            let a: bool = true;
+            if (a) { }
+            else { }
+        ",
+        );
+
+        let expected = vec![
+            Token {
+                lexeme: String::from("let"),
+                ttype: TokenType::Let,
+            },
+            Token {
+                lexeme: String::from("a"),
+                ttype: TokenType::Identifier,
+            },
+            Token {
+                lexeme: String::from(":"),
+                ttype: TokenType::Colon,
+            },
+            Token {
+                lexeme: String::from("bool"),
+                ttype: TokenType::Type,
+            },
+            Token {
+                lexeme: String::from("="),
+                ttype: TokenType::Assign,
+            },
+            Token {
+                lexeme: String::from("true"),
+                ttype: TokenType::True,
+            },
+            Token {
+                lexeme: String::from(";"),
+                ttype: TokenType::Semicolon,
+            },
+            Token {
+                lexeme: String::from("if"),
+                ttype: TokenType::If,
+            },
+            Token {
+                lexeme: String::from("("),
+                ttype: TokenType::OpenParen,
+            },
+            Token {
+                lexeme: String::from("a"),
+                ttype: TokenType::Identifier,
+            },
+            Token {
+                lexeme: String::from(")"),
+                ttype: TokenType::CloseParen,
+            },
+            Token {
+                lexeme: String::from("{"),
+                ttype: TokenType::OpenBrackets,
+            },
+            Token {
+                lexeme: String::from("}"),
+                ttype: TokenType::CloseBrackets,
+            },
+            Token {
+                lexeme: String::from("else"),
+                ttype: TokenType::Else,
+            },
+            Token {
+                lexeme: String::from("{"),
+                ttype: TokenType::OpenBrackets,
+            },
+            Token {
+                lexeme: String::from("}"),
+                ttype: TokenType::CloseBrackets,
+            },
+        ];
+
+        assert!(tokens_comparision_helper(input, expected))
+    }
 }
