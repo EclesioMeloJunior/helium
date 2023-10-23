@@ -71,6 +71,7 @@ where
         loop {
             match self.token_stream.next() {
                 Some(token) if token.ttype == TokenType::CloseParen => break,
+                Some(token) if token.ttype == TokenType::Colon => continue,
                 Some(token) if token.ttype == TokenType::Identifier => {
                     let argument_identifier = token.lexeme.to_string();
 
@@ -206,11 +207,16 @@ where
         })
     }
 
+    fn parse_conditional_statement(&mut self) -> Result<AST, String> {
+        Err(String::from("conditions not implemented yet"))
+    }
+
     fn inner_expression(&mut self, min_biding_power: u8) -> Result<AST, String> {
         let mut lhs = match self.token_stream.next() {
             Some(token) => match token.ttype {
                 TokenType::Func => return self.parse_function_literal(),
                 TokenType::Let => return self.parse_let_statment(),
+                TokenType::If => return self.parse_conditional_statement(),
                 TokenType::Return => {
                     return Ok(AST::ReturnStatement(Box::new(self.inner_expression(0)?)))
                 }
@@ -516,5 +522,49 @@ mod tests {
                 )))),
             ],
         };
+
+        let got_ast = parser.program().unwrap();
+        assert_eq!(expected, got_ast);
+    }
+
+    #[test]
+    fn parse_conditional_flow() {
+        let program = String::from(
+            "
+            func main(a: i32, b: i32) : i32 {
+                if (a < b) {
+                    return 1
+                } else {
+                    return 2
+                }
+            }
+        ",
+        );
+
+        let lexer = Lexer::from(program);
+        let lexer = lexer.map(|token_result| token_result.unwrap()).peekable();
+        let mut parser = Parser::new(lexer);
+
+        let expected = AST::FunctionLiteral {
+            name: String::from("main"),
+            args: vec![
+                (String::from("a"), Type::I32),
+                (String::from("b"), Type::I32),
+            ],
+            return_type: Type::I32,
+            body: vec![Box::new(AST::IfStatement {
+                guard: Box::new(AST::BinaryExpression {
+                    operator: Operator::Less,
+                    lhs: Box::new(AST::Identifier(String::from("a"))),
+                    rhs: Box::new(AST::Identifier(String::from("b"))),
+                }),
+                has_else: true,
+                body: vec![Box::new(AST::ReturnStatement(Box::new(AST::Integer(1))))],
+                else_body: vec![Box::new(AST::ReturnStatement(Box::new(AST::Integer(2))))],
+            })],
+        };
+
+        let got_ast = parser.program().unwrap();
+        assert_eq!(expected, got_ast);
     }
 }

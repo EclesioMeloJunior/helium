@@ -114,12 +114,54 @@ where
                         ttype: TokenType::Semicolon,
                     }))
                 }
-                '=' => {
+                ',' => {
                     return Some(Ok(Token {
-                        lexeme: String::from("="),
-                        ttype: TokenType::Assign,
+                        lexeme: String::from(","),
+                        ttype: TokenType::Colon,
                     }))
                 }
+                '>' => match self.stream.next_if_eq(&('=' as u8)) {
+                    Some(_) => {
+                        return Some(Ok(Token {
+                            lexeme: String::from(">="),
+                            ttype: TokenType::GreaterOrEqual,
+                        }))
+                    }
+                    None => {
+                        return Some(Ok(Token {
+                            lexeme: String::from(">"),
+                            ttype: TokenType::Greater,
+                        }))
+                    }
+                },
+                '<' => match self.stream.next_if_eq(&('=' as u8)) {
+                    Some(_) => {
+                        return return Some(Ok(Token {
+                            lexeme: String::from("<="),
+                            ttype: TokenType::LessOrEqual,
+                        }))
+                    }
+                    None => {
+                        return Some(Ok(Token {
+                            lexeme: String::from("<"),
+                            ttype: TokenType::Less,
+                        }))
+                    }
+                },
+                '=' => match self.stream.next_if_eq(&('=' as u8)) {
+                    Some(_) => {
+                        return Some(Ok(Token {
+                            lexeme: String::from("=="),
+                            ttype: TokenType::Equals,
+                        }))
+                    }
+                    None => {
+                        return Some(Ok(Token {
+                            lexeme: String::from("="),
+                            ttype: TokenType::Assign,
+                        }))
+                    }
+                },
                 ':' => {
                     return Some(Ok(Token {
                         lexeme: String::from(":"),

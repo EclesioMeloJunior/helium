@@ -110,6 +110,11 @@ pub enum TokenType {
     Void,
     If,
     Else,
+    Greater,
+    GreaterOrEqual,
+    Less,
+    LessOrEqual,
+    Equals,
 
     True,
     False,

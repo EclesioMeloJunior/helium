@@ -8,6 +8,11 @@ pub enum Operator {
     Star,
     Bang,
     Carot,
+    Less,
+    LessOrEqual,
+    Greater,
+    GreaterOrEqual,
+    Equals,
 }
 
 impl Operator {
@@ -114,6 +119,13 @@ pub enum AST {
     },
 
     ReturnStatement(Box<AST>),
+
+    IfStatement {
+        body: Vec<Box<AST>>,
+        guard: Box<AST>,
+        has_else: bool,
+        else_body: Vec<Box<AST>>,
+    },
 }
 
 impl From<(NumericType, String)> for AST {
