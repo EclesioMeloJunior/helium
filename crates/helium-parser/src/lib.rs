@@ -208,7 +208,111 @@ where
     }
 
     fn parse_conditional_statement(&mut self) -> Result<AST, String> {
-        Err(String::from("conditions not implemented yet"))
+        self.token_stream
+            .next_if_eq(&Token {
+                lexeme: String::from("("),
+                ttype: TokenType::OpenParen,
+            })
+            .expect(
+                format!(
+                    "expected open parentheses '(', got: {:?}",
+                    self.token_stream.peek()
+                )
+                .as_str(),
+            );
+
+        let guard_expression = self.inner_expression(0)?;
+
+        self.token_stream
+            .next_if_eq(&Token {
+                lexeme: String::from(")"),
+                ttype: TokenType::CloseParen,
+            })
+            .expect(
+                format!(
+                    "expected closing parentheses ')', got: {:?}",
+                    self.token_stream.peek()
+                )
+                .as_str(),
+            );
+
+        self.token_stream
+            .next_if_eq(&Token {
+                lexeme: String::from("{"),
+                ttype: TokenType::OpenBrackets,
+            })
+            .expect(
+                format!(
+                    "expected open brackets '{{', got: {:?}",
+                    self.token_stream.peek()
+                )
+                .as_str(),
+            );
+
+        let mut body: Vec<Box<AST>> = vec![];
+
+        loop {
+            match self.token_stream.peek() {
+                None => {
+                    return Err(String::from(
+                        "EOF not expected while parshing if condition body",
+                    ))
+                }
+                Some(token) if token.ttype == TokenType::CloseBrackets => {
+                    self.token_stream.next().unwrap();
+                    break;
+                }
+                _ => body.push(Box::new(self.inner_expression(0)?)),
+            }
+        }
+
+        let else_body = {
+            // if the next token is an else then we parse its body
+            match self.token_stream.next_if_eq(&Token {
+                lexeme: String::from("else"),
+                ttype: TokenType::Else,
+            }) {
+                None => None,
+                _ => {
+                    self.token_stream
+                        .next_if_eq(&Token {
+                            lexeme: String::from("{"),
+                            ttype: TokenType::OpenBrackets,
+                        })
+                        .expect(
+                            format!(
+                                "expected open brackets '{{', got: {:?}",
+                                self.token_stream.peek()
+                            )
+                            .as_str(),
+                        );
+
+                    let mut else_body: Vec<Box<AST>> = vec![];
+                    loop {
+                        match self.token_stream.peek() {
+                            None => {
+                                return Err(String::from(
+                                    "EOF not expected while parshing if condition body",
+                                ))
+                            }
+                            Some(token) if token.ttype == TokenType::CloseBrackets => {
+                                self.token_stream.next().unwrap();
+                                break;
+                            }
+                            _ => else_body.push(Box::new(self.inner_expression(0)?)),
+                        }
+                    }
+
+                    Some(else_body)
+                }
+            }
+        };
+
+        Ok(AST::IfStatement {
+            body: body,
+            guard: Box::new(guard_expression),
+            else_body: else_body,
+        })
     }
 
     fn inner_expression(&mut self, min_biding_power: u8) -> Result<AST, String> {
@@ -317,6 +421,35 @@ mod tests {
 
         let expected = AST::BinaryExpression {
             operator: Operator::Plus,
+            lhs: Box::new(AST::Integer(1)),
+            rhs: Box::new(AST::Integer(1)),
+        };
+
+        let mut parser = Parser::new(tokens.into_iter().peekable());
+        let output = parser.program().unwrap();
+
+        assert_eq!(expected, output)
+    }
+
+    #[test]
+    fn parse_simple_comparision() {
+        let tokens = vec![
+            Token {
+                lexeme: String::from("1"),
+                ttype: TokenType::Number(NumericType::Integer),
+            },
+            Token {
+                lexeme: String::from(">"),
+                ttype: TokenType::Greater,
+            },
+            Token {
+                lexeme: String::from("1"),
+                ttype: TokenType::Number(NumericType::Integer),
+            },
+        ];
+
+        let expected = AST::BinaryExpression {
+            operator: Operator::Greater,
             lhs: Box::new(AST::Integer(1)),
             rhs: Box::new(AST::Integer(1)),
         };
@@ -558,9 +691,10 @@ mod tests {
                     lhs: Box::new(AST::Identifier(String::from("a"))),
                     rhs: Box::new(AST::Identifier(String::from("b"))),
                 }),
-                has_else: true,
                 body: vec![Box::new(AST::ReturnStatement(Box::new(AST::Integer(1))))],
-                else_body: vec![Box::new(AST::ReturnStatement(Box::new(AST::Integer(2))))],
+                else_body: Some(vec![Box::new(AST::ReturnStatement(Box::new(
+                    AST::Integer(2),
+                )))]),
             })],
         };
 

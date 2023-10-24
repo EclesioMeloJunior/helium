@@ -20,6 +20,10 @@ impl Operator {
         match self {
             Operator::Plus | Operator::Minus => Ok((1, 2)),
             Operator::Slash | Operator::Star => Ok((3, 4)),
+            Operator::Greater
+            | Operator::Less
+            | Operator::GreaterOrEqual
+            | Operator::LessOrEqual => Ok((1, 1)),
             _ => Err(format!(
                 "operator {:?} does not have infix properties",
                 self
@@ -46,6 +50,10 @@ impl TryFrom<&Token> for Operator {
             TokenType::Plus => Ok(Operator::Plus),
             TokenType::Slash => Ok(Operator::Slash),
             TokenType::Star => Ok(Operator::Star),
+            TokenType::Less => Ok(Operator::Less),
+            TokenType::LessOrEqual => Ok(Operator::LessOrEqual),
+            TokenType::Greater => Ok(Operator::Greater),
+            TokenType::GreaterOrEqual => Ok(Operator::GreaterOrEqual),
             _ => Err(format!(
                 "operator not defined: '{}' ({:?})",
                 value.lexeme, value.ttype
@@ -123,8 +131,7 @@ pub enum AST {
     IfStatement {
         body: Vec<Box<AST>>,
         guard: Box<AST>,
-        has_else: bool,
-        else_body: Vec<Box<AST>>,
+        else_body: Option<Vec<Box<AST>>>,
     },
 }
 
